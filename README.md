@@ -21,3 +21,8 @@ python3 main.py
 
 This creates a minimal, easy-to-extend codebase under `terminal_exit/`.
 
+
+TO DO
+- fix EVERYTHING
+- make map bigger
+- more content

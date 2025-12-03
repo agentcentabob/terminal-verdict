@@ -1,5 +1,5 @@
 """AI companion implementation with emoticon states and dialogue helper."""
-from .ascii_art import render_face, draw_box, cprint
+from .ascii_art import render_face, draw_fancy_box, cprint
 
 
 class AICompanion:
@@ -12,11 +12,18 @@ class AICompanion:
         self.mood = mood
 
     def speak(self, mood, text):
-        # update mood, render a larger expressive face and framed text
+        """Display AI speaking with face and dialogue."""
         self.mood = mood
         render_face(mood, large=True)
-        draw_box('AI', [text], width=50, color='green')
+        print()
+        draw_fancy_box('AI Companion', [text], width=60, color='green')
 
     def describe(self):
-        lines = [f'Current Mood: {self.mood}', f'Upgrades: {len(self.upgrades)}', f'Bond: {int(self.bond*100)}%']
-        draw_box('AI STATUS', lines, width=50, color='yellow')
+        """Show AI status."""
+        lines = [
+            f'Mood: {self.mood.upper()}',
+            f'Upgrades Installed: {len(self.upgrades)}/12',
+            f'Bond Level: {int(self.bond*100)}%'
+        ]
+        draw_fancy_box('AI STATUS', lines, width=60, color='yellow')
+

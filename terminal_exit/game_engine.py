@@ -1,9 +1,10 @@
 """Core game loop and navigation for a minimal prototype."""
 from .ai_companion import AICompanion
-from .ascii_art import render_face, cprint, wait_for_continue, clear_screen, draw_box
+from .ascii_art import render_face, cprint, wait_for_continue, clear_screen, draw_fancy_box, draw_menu
 from .world_manager import WorldManager
 from .inventory import Inventory
 from .save_load import SaveLoad
+from .interactive_intro import InteractiveIntro
 import time
 
 
@@ -14,17 +15,31 @@ class GameEngine:
         self.inventory = Inventory()
         self.saver = SaveLoad()
         self.running = True
+        self.player_state = {
+            'intro_seen': False,
+            'tutorial_completed': False,
+            'location': 'awakening_point',
+        }
 
     def _show_main_menu(self):
         clear_screen()
-        draw_box('TERMINAL.EXIT', ['Prototype - minimal demo', '1. New Game', '2. Load Game', '3. Quit'], width=60, color='cyan')
+        print()
+        draw_fancy_box('TERMINAL.EXIT', [
+            'A text-based escape adventure',
+            '',
+            'Navigate through a mysterious digital world',
+            'Guided by an AI companion',
+            'Uncover secrets. Make choices. Find escape.'
+        ], width=60, color='cyan')
+        print()
+        draw_menu('Main Menu', ['New Game', 'Load Game', 'Quit'], width=50, color='yellow')
 
     def _new_game(self):
-        clear_screen()
-        cprint('\n[BOOT SEQUENCE] You awaken in a dim corridor...', 'white')
-        time.sleep(0.3)
-        self.ai.speak('happy', "Hello! I'm here to help. Let's explore.")
-        wait_for_continue()
+        """Start a new game with interactive intro."""
+        intro = InteractiveIntro(self.ai, self.world, self.inventory)
+        intro.play()
+        
+        self.player_state['intro_seen'] = True
         self._explore_loop()
 
     def _show_cutaway(self, text, ai_mood=None, ai_text=None):
@@ -37,25 +52,52 @@ class GameEngine:
         print()
         wait_for_continue('Press Enter to continue...')
 
+    def _begin_exploration(self):
+        """Start the main exploration phase after intro/tutorial."""
+        clear_screen()
+        cprint('\n', 'white')
+        cprint('═' * 60, 'cyan')
+        cprint('  THE EXPLORATION BEGINS', 'cyan')
+        cprint('═' * 60, 'cyan')
+        cprint('\n', 'white')
+        
+        render_face('happy', large=True)
+        cprint('\n', 'white')
+        
+        cprint('   "Okay! Time to really explore. Stay alert, and remember—', 'green')
+        time.sleep(0.5)
+        cprint('   no matter what we find, we\'re in this together."', 'green')
+        time.sleep(1)
+        
+        cprint('\n', 'white')
+        wait_for_continue('Press Enter to begin...> ')
+
     def _explore_loop(self):
         while True:
             location = self.world.current_room
-            # display room with box and minimap
-            draw_box(location.name, [location.description], width=60, color='magenta')
+            
+            # Display location with new fancy UI
+            print()
+            draw_fancy_box(location.name, [location.description], width=60, color='magenta')
+            
             minimap = self.world.render_minimap()
-            draw_box('MAP', minimap, width=30, color='blue')
-            print('\nActions:')
+            draw_fancy_box('MAP', minimap, width=30, color='blue')
+            
+            print('ACTIONS:')
             for i, opt in enumerate(location.options, start=1):
-                print(f"{i}. {opt}")
-            print(f"{len(location.options)+1}. Check AI")
-            print(f"{len(location.options)+2}. Inventory")
-            print(f"{len(location.options)+3}. Return to Main Menu")
+                print(f"  {i}. {opt}")
+            print(f"  {len(location.options)+1}. Check AI")
+            print(f"  {len(location.options)+2}. Inventory")
+            print(f"  {len(location.options)+3}. Return to Main Menu")
+            print()
+            
             choice = input('> ').strip()
             try:
                 ci = int(choice)
             except ValueError:
                 self.ai.speak('neutral', "I didn't understand that.")
                 continue
+            
             if ci == len(location.options)+1:
                 self.ai_status()
             elif ci == len(location.options)+2:
@@ -65,17 +107,14 @@ class GameEngine:
             elif ci == len(location.options)+3:
                 break
             elif 1 <= ci <= len(location.options):
-                # very small demo: move or examine
                 sel = location.options[ci-1]
                 if sel.lower().startswith('go '):
                     direction = sel.split(' ', 1)[1]
                     self.world.move(direction)
-                    # Show arrival cutaway
                     new_location = self.world.current_room
                     arrival_msg = f"You go {direction}...\n\n{new_location.description}"
                     self._show_cutaway(arrival_msg, 'happy', f"We've arrived!")
                 else:
-                    # examination cutaway
                     self._show_cutaway(f"You examine {sel}...\n\nIt's interesting.", 'thinking', 'I\'m analyzing this...')
             else:
                 continue
