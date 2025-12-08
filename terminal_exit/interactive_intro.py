@@ -330,6 +330,14 @@ class InteractiveIntro:
         
         clear_screen()
         print()
+        
+        # Add starting items
+        self.inventory.add_item('Health Potion')
+        self.inventory.add_item('Health Potion')
+        cprint('  You find 2 Health Potions to start your journey.', 'green')
+        print()
+        time.sleep(0.5)
+        
         print(_pulse_text('...'))
         time.sleep(1)
         clear_screen()

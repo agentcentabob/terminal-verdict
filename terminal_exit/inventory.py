@@ -15,6 +15,10 @@ class Inventory:
 
     def add_item(self, name, desc='', item_type='gear', key=False):
         """Add an item to inventory."""
+        # Auto-detect item type for known items
+        if name == 'Health Potion':
+            item_type = 'consumable'
+        
         item = Item(name, desc, item_type, key)
         self.items.append(item)
         return item

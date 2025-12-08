@@ -5,6 +5,7 @@ from .world_manager import WorldManager
 from .inventory import Inventory
 from .save_load import SaveLoad
 from .interactive_intro import InteractiveIntro
+from .combat_system import CombatSystem
 import time
 
 
@@ -13,6 +14,7 @@ class GameEngine:
         self.ai = AICompanion()
         self.world = WorldManager()
         self.inventory = Inventory()
+        self.combat = CombatSystem(self.ai, self.inventory)
         self.saver = SaveLoad()
         self.running = True
         self.player_state = {
@@ -73,10 +75,36 @@ class GameEngine:
         wait_for_continue('Press Enter to begin...> ')
 
     def _explore_loop(self):
+        """Main exploration loop with combat integration."""
         while True:
             location = self.world.current_room
             
-            # Display location with new fancy UI
+            # Check for encounter (only once per room)
+            if location.encounter and not location.encounter_cleared:
+                clear_screen()
+                render_face('nervous', large=True)
+                cprint(f'\n  "Wait... I sense something in this area!"', 'yellow')
+                wait_for_continue('> ')
+                
+                # Run combat
+                victory = self.combat.start_encounter(location.encounter)
+                location.encounter_cleared = True  # Mark as cleared regardless of outcome
+                
+                if victory:
+                    self.ai.set_mood('happy')
+                    clear_screen()
+                    cprint('You take a moment to catch your breath.', 'white')
+                    wait_for_continue('> ')
+                else:
+                    # Lost or fled
+                    clear_screen()
+                    cprint('You need to regroup...', 'yellow')
+                    wait_for_continue('> ')
+                
+                # Continue exploration after combat
+                continue
+            
+            # Display location with fancy UI
             print()
             draw_fancy_box(location.name, [location.description], width=60, color='magenta')
             
@@ -86,37 +114,59 @@ class GameEngine:
             print('ACTIONS:')
             for i, opt in enumerate(location.options, start=1):
                 print(f"  {i}. {opt}")
-            print(f"  {len(location.options)+1}. Check AI")
+            print(f"  {len(location.options)+1}. Check AI Status")
             print(f"  {len(location.options)+2}. Inventory")
             print(f"  {len(location.options)+3}. Return to Main Menu")
             print()
             
             choice = input('> ').strip()
+            
             try:
                 ci = int(choice)
             except ValueError:
-                self.ai.speak('neutral', "I didn't understand that.")
+                clear_screen()
+                self.ai.speak('neutral', "I didn't understand that. Try a number.")
+                wait_for_continue('> ')
                 continue
             
             if ci == len(location.options)+1:
+                # Check AI status
                 self.ai_status()
+            
             elif ci == len(location.options)+2:
+                # Show inventory
                 clear_screen()
                 self.inventory.show()
                 wait_for_continue()
+            
             elif ci == len(location.options)+3:
+                # Return to menu
+                clear_screen()
+                cprint('\n"Until next time..."', 'yellow')
+                time.sleep(0.5)
                 break
+            
             elif 1 <= ci <= len(location.options):
+                # Handle location action
                 sel = location.options[ci-1]
                 if sel.lower().startswith('go '):
-                    direction = sel.split(' ', 1)[1]
-                    self.world.move(direction)
-                    new_location = self.world.current_room
-                    arrival_msg = f"You go {direction}...\n\n{new_location.description}"
-                    self._show_cutaway(arrival_msg, 'happy', f"We've arrived!")
+                    direction = sel.split(' ', 1)[1].lower()
+                    if direction in location.neighbors:
+                        self.world.move(direction)
+                        new_location = self.world.current_room
+                        arrival_msg = f"You go {direction}...\n\n{new_location.description}"
+                        self._show_cutaway(arrival_msg, 'happy', f"We've arrived!")
+                    else:
+                        clear_screen()
+                        cprint(f"You can't go {direction} from here.", 'red')
+                        wait_for_continue('> ')
                 else:
                     self._show_cutaway(f"You examine {sel}...\n\nIt's interesting.", 'thinking', 'I\'m analyzing this...')
+            
             else:
+                clear_screen()
+                cprint('Invalid choice. Try again.', 'yellow')
+                wait_for_continue('> ')
                 continue
 
     def ai_status(self):
