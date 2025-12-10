@@ -32,7 +32,7 @@ class WorldManager:
         awakening = Room(
             'Awakening Point',
             'You stand in a dim corridor. Flickering symbols line corroded walls.\nThe air hums with energy. This is where you woke up.',
-            ['Go North', 'Examine Wall', 'Examine Floor'],
+            ['Examine Wall', 'Examine Floor'],
             coord=(0, 0),
             zone='awakening'
         )
@@ -41,7 +41,7 @@ class WorldManager:
         void = Room(
             'Void Corridor',
             'The corridor stretches deeper. Lights flicker in waves.\nA corrupted console pulses with faint light in the shadows.',
-            ['Go South', 'Go East', 'Examine Console', 'Examine Symbols'],
+            ['Examine Console', 'Examine Symbols'],
             coord=(0, 1),
             zone='awakening',
             encounter='glitch'
@@ -51,7 +51,7 @@ class WorldManager:
         lost = Room(
             'Lost Chambers',
             'A vast chamber with broken architecture. Vines of corrupted code crawl across walls.\nEverything here feels abandoned, forgotten.',
-            ['Go South', 'Go North', 'Go East'],
+            ['Examine Architecture', 'Examine Vines'],
             coord=(1, 1),
             zone='awakening'
         )
@@ -60,7 +60,7 @@ class WorldManager:
         junction = Room(
             'Junction',
             'Multiple paths meet here. A humming sound echoes from the East.\nThe air feels different—almost electric.',
-            ['Go West', 'Go East', 'Go North'],
+            ['Examine Paths', 'Listen to Hum'],
             coord=(1, 0),
             zone='awakening'
         )
@@ -69,7 +69,7 @@ class WorldManager:
         data_ruins = Room(
             'Data Ruins',
             'Larger chamber filled with broken servers and twisted metal.\nGlowing red error lights pulse like dying heartbeats.',
-            ['Go West', 'Go East', 'Go North', 'Examine Servers'],
+            ['Examine Servers', 'Examine Metal'],
             coord=(2, 0),
             zone='data_ruins',
             encounter='phantom'
@@ -79,7 +79,7 @@ class WorldManager:
         vault = Room(
             'Corrupted Vault',
             'An imposing chamber with sealed doors. Strange symbols mark everything.\nYou feel the weight of secrets stored here.',
-            ['Go West', 'Examine Doors'],
+            ['Examine Doors', 'Examine Symbols'],
             coord=(3, 0),
             zone='data_ruins'
         )
@@ -88,7 +88,7 @@ class WorldManager:
         processing = Room(
             'Processing Depths',
             'You descend into chambers of pure machinery. The humming is deafening.\nLiquid drips from above, pooling in strange patterns.',
-            ['Go South', 'Go East', 'Examine Machinery'],
+            ['Examine Machinery', 'Examine Liquid'],
             coord=(1, 2),
             zone='processing',
             encounter='fragment'
@@ -98,7 +98,7 @@ class WorldManager:
         nexus = Room(
             'Core Nexus',
             'You stand before immense crystalline structures pulsing with power.\nThe air itself seems alive with energy.',
-            ['Go South', 'Go West', 'Examine Crystals'],
+            ['Examine Crystals', 'Feel Energy'],
             coord=(2, 2),
             zone='processing'
         )
@@ -107,7 +107,7 @@ class WorldManager:
         memory = Room(
             'Memory Chamber',
             'Hundreds of data crystals line the walls, each pulsing with stored information.\nA feeling of profound loneliness fills this space.',
-            ['Go West', 'Go East', 'Go South', 'Examine Crystals'],
+            ['Examine Crystals', 'Examine Information'],
             coord=(3, 2),
             zone='processing',
             encounter='echo'
@@ -129,14 +129,49 @@ class WorldManager:
             self.rooms[room.name] = room
 
     def move(self, direction):
-        """Move in a direction."""
+        """Move in a direction using up/down/left/right.
+        
+        Args:
+            direction: 'up', 'down', 'left', or 'right'
+            
+        Returns:
+            tuple: (success: bool, message: str, new_room: Room or None)
+        """
         dir_key = direction.lower()
-        cur = self.current_room
-        if dir_key in cur.neighbors:
-            self.current_room = self.rooms[cur.neighbors[dir_key]]
-            self.current_room.visited = True
-        else:
-            print('You cannot go that way.')
+        
+        # Map directional input to coordinate changes
+        direction_map = {
+            'up': (0, -1),      # decrease y
+            'down': (0, 1),     # increase y
+            'left': (-1, 0),    # decrease x
+            'right': (1, 0)     # increase x
+        }
+        
+        if dir_key not in direction_map:
+            msg = "Invalid direction. Use: up, down, left, or right."
+            return False, msg, None
+        
+        # Calculate target coordinates
+        dx, dy = direction_map[dir_key]
+        target_x = self.current_room.coord[0] + dx
+        target_y = self.current_room.coord[1] + dy
+        target_coord = (target_x, target_y)
+        
+        # Find room at target coordinate
+        target_room = None
+        for room in self.rooms.values():
+            if room.coord == target_coord:
+                target_room = room
+                break
+        
+        if target_room is None:
+            msg = "You've hit a wall! There's nothing in that direction."
+            return False, msg, None
+        
+        # Move to the new room
+        self.current_room = target_room
+        self.current_room.visited = True
+        return True, f"You move {direction}...", target_room
 
     def render_minimap(self):
         """Render a minimap of visited areas."""

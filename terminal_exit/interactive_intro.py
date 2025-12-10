@@ -131,17 +131,18 @@ class InteractiveIntro:
         print()
         
         # Interactive movement
-        draw_menu('Where do you want to go?', ['Go North (into the void)', 'Examine the walls'])
+        draw_menu('Where do you want to go?',
+                  ['Go up (into the void)', 'Examine the walls'])
         
         choice = input('Your choice > ').strip()
         
         if choice == '1':
             clear_screen()
             print()
-            cprint('You move North...', 'white')
+            cprint('You move up...', 'white')
             time.sleep(0.5)
             print()
-            self.world.move('north')
+            success, msg, room = self.world.move('up')
             
             draw_scene_box(
                 'The corridor stretches on. Lights flicker in waves. '
@@ -173,10 +174,10 @@ class InteractiveIntro:
             wait_for_continue('> ')
             clear_screen()
             print()
-            cprint('You move North...', 'white')
+            cprint('You move up...', 'white')
             time.sleep(0.5)
             print()
-            self.world.move('north')
+            success, msg, room = self.world.move('up')
             draw_scene_box('The corridor stretches on, lights flickering.')
         
         clear_screen()

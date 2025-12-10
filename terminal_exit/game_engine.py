@@ -88,7 +88,7 @@ class GameEngine:
                 
                 # Run combat
                 victory = self.combat.start_encounter(location.encounter)
-                location.encounter_cleared = True  # Mark as cleared regardless of outcome
+                location.encounter_cleared = True
                 
                 if victory:
                     self.ai.set_mood('happy')
@@ -106,26 +106,47 @@ class GameEngine:
             
             # Display location with fancy UI
             print()
-            draw_fancy_box(location.name, [location.description], width=60, color='magenta')
+            draw_fancy_box(location.name, [location.description],
+                           width=60, color='magenta')
             
             minimap = self.world.render_minimap()
             draw_fancy_box('MAP', minimap, width=30, color='blue')
             
-            print('ACTIONS:')
+            print('EXPLORATION ACTIONS:')
             for i, opt in enumerate(location.options, start=1):
                 print(f"  {i}. {opt}")
             print(f"  {len(location.options)+1}. Check AI Status")
             print(f"  {len(location.options)+2}. Inventory")
             print(f"  {len(location.options)+3}. Return to Main Menu")
             print()
+            print('MOVEMENT: Type "up", "down", "left", or "right" to move')
+            print()
             
-            choice = input('> ').strip()
+            choice = input('> ').strip().lower()
             
+            # Check if input is a direction
+            if choice in ['up', 'down', 'left', 'right']:
+                success, msg, new_room = self.world.move(choice)
+                if success:
+                    self._show_cutaway(
+                        f"{msg}\n\n{new_room.description}",
+                        'happy',
+                        "We've arrived!"
+                    )
+                else:
+                    clear_screen()
+                    cprint(msg, 'yellow')
+                    wait_for_continue('> ')
+                continue
+            
+            # Otherwise try to parse as numeric choice
             try:
                 ci = int(choice)
             except ValueError:
                 clear_screen()
-                self.ai.speak('neutral', "I didn't understand that. Try a number.")
+                msg = "I didn't understand that. Use up/down/left/right " \
+                      "to move, or enter a number."
+                self.ai.speak('neutral', msg)
                 wait_for_continue('> ')
                 continue
             
@@ -147,21 +168,13 @@ class GameEngine:
                 break
             
             elif 1 <= ci <= len(location.options):
-                # Handle location action
+                # Handle location action (examine, interact, etc.)
                 sel = location.options[ci-1]
-                if sel.lower().startswith('go '):
-                    direction = sel.split(' ', 1)[1].lower()
-                    if direction in location.neighbors:
-                        self.world.move(direction)
-                        new_location = self.world.current_room
-                        arrival_msg = f"You go {direction}...\n\n{new_location.description}"
-                        self._show_cutaway(arrival_msg, 'happy', f"We've arrived!")
-                    else:
-                        clear_screen()
-                        cprint(f"You can't go {direction} from here.", 'red')
-                        wait_for_continue('> ')
-                else:
-                    self._show_cutaway(f"You examine {sel}...\n\nIt's interesting.", 'thinking', 'I\'m analyzing this...')
+                self._show_cutaway(
+                    f"You examine {sel}...\n\nIt's interesting.",
+                    'thinking',
+                    'I\'m analyzing this...'
+                )
             
             else:
                 clear_screen()
