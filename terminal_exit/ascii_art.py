@@ -45,9 +45,75 @@ SMALL_FACE = {
 }
 
 
-# ═══════════════════════════════════════════════════════════════
-# GORGEOUS GRAPHICS & LAYOUTS
-# ═══════════════════════════════════════════════════════════════
+# Location-specific ASCII art decorations
+LOCATION_ART = {
+    'Awakening Point': [
+        '      ⚡ ⚡ ⚡',
+        '    ┌─────────┐',
+        '    │ ∿∿∿∿∿∿∿ │',
+        '    │ ▒▒▒▒▒▒▒ │',
+        '    │ ∿∿∿∿∿∿∿ │',
+        '    └─────────┘',
+    ],
+    'Void Corridor': [
+        '  ░░░░░░░░░░░░░░',
+        '  ░  ▯  ▯  ▯  ░',
+        '  ░░░░░░░░░░░░░░',
+        '  ░ ░░░░░░░░░░ ░',
+        '  ░░░░░░░░░░░░░░',
+    ],
+    'Lost Chambers': [
+        '    ╔════════╗',
+        '    ║ ▒ ▒ ▒ ║',
+        '   ╱╚════════╝╲',
+        '  ╱            ╲',
+        ' ╱══════════════╲',
+    ],
+    'Junction': [
+        '   ▼ ← → ▲',
+        '  ◊ ◆ ◊ ◆',
+        '   ← ▼ ▲ →',
+        '  ◆ ◊ ◆ ◊',
+        '   ▲ → ← ▼',
+    ],
+    'Data Ruins': [
+        '  ╔════════╗',
+        '  ║ ⊠ ⊠ ⊠ ║',
+        '  ║ ⊠ ⊗ ⊠ ║',
+        '  ║ ⊠ ⊠ ⊠ ║',
+        '  ╚════════╝',
+    ],
+    'Corrupted Vault': [
+        '   ┌──────────┐',
+        '   │    ◉     │',
+        '   │   ◉◉◉    │',
+        '   │    ◉     │',
+        '   └──────────┘',
+    ],
+    'Processing Depths': [
+        '  ⫸ ⫸ ⫸ ⫸ ⫸',
+        '  ▼ ▼ ▼ ▼ ▼',
+        '  ⟿ ⟿ ⟿ ⟿ ⟿',
+        '  ▼ ▼ ▼ ▼ ▼',
+        '  ⫸ ⫸ ⫸ ⫸ ⫸',
+    ],
+    'Core Nexus': [
+        '     ╱╲╱╲',
+        '    ╱  ❖  ╲',
+        '   ╱  ◆◆◆  ╲',
+        '  ╱   ◆◆◆   ╲',
+        ' ╱────────────╲',
+    ],
+    'Memory Chamber': [
+        '  ◇ ◇ ◇ ◇ ◇',
+        '  ◇ ◇ ◇ ◇ ◇',
+        '  ◇ ◇ ⬥ ◇ ◇',
+        '  ◇ ◇ ◇ ◇ ◇',
+        '  ◇ ◇ ◇ ◇ ◇',
+    ],
+}
+
+
 
 TITLE_BANNER = [
 '╔══════════════════════════════════════════════════════════════════════════════════════════════════════════════════╗',
@@ -93,6 +159,47 @@ def draw_fancy_box(title, lines, width=70, color='cyan', char='═'):
         print(_color_wrap(f'║  {text:<{width-4}} ║', color))
     
     print(_color_wrap('╚' + char * (width - 2) + '╝', color))
+
+
+def draw_location_box(title, description, width=80, color='magenta'):
+    """Draw an enhanced location box with ASCII art decoration."""
+    top = '╔' + '═' * (width - 2) + '╗'
+    title_line = f'║ ▸ {title:<{width-6}} ║'
+    divider = '╠' + '═' * (width - 2) + '╣'
+    
+    print(_color_wrap(top, color))
+    print(_color_wrap(title_line, color))
+    print(_color_wrap(divider, color))
+    
+    # Get location art if available
+    art_lines = LOCATION_ART.get(title, [])
+    
+    # Display ASCII art centered
+    if art_lines:
+        for art_line in art_lines:
+            padded = art_line.center(width - 4)
+            print(_color_wrap(f'║ {padded} ║', color))
+        print(_color_wrap('╠' + '─' * (width - 2) + '╣', color))
+    
+    # Word wrap description
+    words = description.split()
+    lines = []
+    current_line = ''
+    for word in words:
+        if len(current_line) + len(word) + 1 <= width - 4:
+            current_line += word + ' '
+        else:
+            if current_line:
+                lines.append(current_line.strip())
+            current_line = word + ' '
+    if current_line:
+        lines.append(current_line.strip())
+    
+    for line in lines:
+        text = line[:width-4]
+        print(_color_wrap(f'║  {text:<{width-4}} ║', color))
+    
+    print(_color_wrap('╚' + '═' * (width - 2) + '╝', color))
 
 
 def draw_banner_box(title, lines, width=70, color='cyan'):

@@ -81,6 +81,38 @@ ENEMIES = {
     ),
 }
 
+# Enemy drops - unique upgrades from defeated enemies
+ENEMY_DROPS = {
+    'glitch': {
+        'upgrade_name': 'Glitch Analyzer',
+        'upgrade_key': 'glitch_analyzer',
+        'description': ('Analyze corrupted systems. '
+                        'Dropped by Glitched Sentinel.'),
+        'ability': 'analyze_glitch'
+    },
+    'phantom': {
+        'upgrade_name': 'Phase Shifter',
+        'upgrade_key': 'phase_shifter',
+        'description': ('Phase through obstacles. '
+                        'Dropped by Data Phantom.'),
+        'ability': 'phase_shift'
+    },
+    'fragment': {
+        'upgrade_name': 'Fragment Reassembler',
+        'upgrade_key': 'fragment_reassembler',
+        'description': ('Restore broken components. '
+                        'Dropped by Corrupted Fragment.'),
+        'ability': 'reassemble'
+    },
+    'echo': {
+        'upgrade_name': 'Echo Resonator',
+        'upgrade_key': 'echo_resonator',
+        'description': ('Understand reflected patterns. '
+                        'Dropped by System Echo.'),
+        'ability': 'resonate'
+    },
+}
+
 
 class CombatSystem:
     """Handles turn-based combat with fully functional minigame."""
@@ -240,7 +272,7 @@ class CombatSystem:
         # Base strike zone
         width = 30
         base_start = random.randint(10, 16)
-        base_width = 6
+        base_width = 2
         base_damage = 12
         
         print("Strike Zones Available:")
@@ -492,16 +524,81 @@ class CombatSystem:
         
         # Bond and stats
         self.ai.bond = min(1.0, self.ai.bond + 0.1)
-        accuracy = int((self.strikes_landed / (self.strikes_landed + self.strikes_missed)) * 100) if (self.strikes_landed + self.strikes_missed) > 0 else 0
-        cprint(f'  Accuracy: {accuracy}% | Turns: {self.turn_count}', 'cyan')
+        accuracy = int((self.strikes_landed / (self.strikes_landed +
+                    self.strikes_missed)) * 100) if (
+                    self.strikes_landed + self.strikes_missed) > 0 else 0
+        cprint(f'  Accuracy: {accuracy}% | Turns: {self.turn_count}',
+               'cyan')
         
         from .ascii_art import render_face
         render_face('happy', large=True)
         cprint(f'  ▸ "We did it! That was amazing!"', 'yellow')
         print()
         
+        # Check for enemy drop
+        self._handle_enemy_drop()
+        
         wait_for_continue('> ')
         return True
+    
+    def _handle_enemy_drop(self):
+        """Handle dropping unique upgrade from defeated enemy."""
+        # Find which enemy was defeated
+        enemy_key = None
+        for key, enemy in ENEMIES.items():
+            if enemy.name == self.current_enemy.name:
+                enemy_key = key
+                break
+        
+        if not enemy_key or enemy_key not in ENEMY_DROPS:
+            return
+        
+        drop = ENEMY_DROPS[enemy_key]
+        
+        # Create upgrade item
+        upgrade_item = self.inventory.add_item(
+            drop['upgrade_name'],
+            drop['description'],
+            item_type='upgrade'
+        )
+        
+        # Display drop message
+        print()
+        cprint('═' * 70, 'cyan')
+        cprint(f'  ✦ UPGRADE ACQUIRED: {drop["upgrade_name"]}', 'cyan')
+        cprint('═' * 70, 'cyan')
+        cprint(f'  {drop["description"]}', 'white')
+        print()
+        cprint('  Add this upgrade to Aria?', 'yellow')
+        print('  1. YES - Install upgrade now')
+        print('  2. NO - Keep in inventory')
+        print()
+        
+        choice = input('  > ').strip()
+        if choice == '1':
+            self._install_upgrade_to_ai(upgrade_item, drop)
+        else:
+            cprint(f'  ▸ "We can install it later when you\'re ready!"',
+                   'green')
+    
+    def _install_upgrade_to_ai(self, item, drop_info):
+        """Install a dropped upgrade to the AI companion."""
+        self.ai.upgrades.append(drop_info['upgrade_name'])
+        self.ai.bond = min(1.0, self.ai.bond + 0.05)
+        
+        from .ascii_art import render_face
+        clear_screen()
+        print()
+        render_face('happy', large=True)
+        cprint(f'  ▸ "Wow! I can feel new abilities unlocking!"',
+               'green')
+        cprint(f'  ▸ "Thanks for this! I\'m getting stronger thanks to you!"',
+               'yellow')
+        print()
+        cprint(f'  Aria has learned: {drop_info["upgrade_name"]}',
+               'cyan')
+        
+        wait_for_continue('> ')
     
     def _defeat(self):
         """Handle defeat."""
@@ -517,7 +614,8 @@ class CombatSystem:
         
         from .ascii_art import render_face
         render_face('nervous', large=True)
-        cprint('  ▸ "No, no no NO! Please... I can\'t lose you!"', 'yellow')
+        cprint('  ▸ "No, no no NO! Please... I can\'t lose you!"',
+               'yellow')
         print()
         
         # Revive with reduced HP

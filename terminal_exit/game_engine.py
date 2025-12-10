@@ -1,12 +1,15 @@
 """Core game loop and navigation for a minimal prototype."""
 from .ai_companion import AICompanion
-from .ascii_art import render_face, cprint, wait_for_continue, clear_screen, draw_fancy_box, draw_menu
+from .ascii_art import (render_face, cprint, wait_for_continue,
+                        clear_screen, draw_fancy_box, draw_menu,
+                        draw_location_box)
 from .world_manager import WorldManager
 from .inventory import Inventory
 from .save_load import SaveLoad
 from .interactive_intro import InteractiveIntro
 from .combat_system import CombatSystem
 import time
+import random
 
 
 class GameEngine:
@@ -106,8 +109,8 @@ class GameEngine:
             
             # Display location with fancy UI
             print()
-            draw_fancy_box(location.name, [location.description],
-                           width=60, color='magenta')
+            draw_location_box(location.name, location.description,
+                              width=80, color='magenta')
             
             minimap = self.world.render_minimap()
             draw_fancy_box('MAP', minimap, width=30, color='blue')
@@ -183,11 +186,78 @@ class GameEngine:
                 continue
 
     def ai_status(self):
+        """Display AI status with upgrade installation interface."""
+        while True:
+            clear_screen()
+            render_face(self.ai.mood, large=True)
+            self.ai.describe()
+            print()
+            
+            # Get available upgrades from inventory
+            available_upgrades = [
+                item for item in self.inventory.items
+                if item.item_type == 'upgrade'
+            ]
+            
+            if available_upgrades:
+                print('AVAILABLE UPGRADES:')
+                for i, upgrade in enumerate(available_upgrades, 1):
+                    print(f'  {i}. {upgrade.name}')
+                    print(f'     {upgrade.desc}')
+                print()
+                print('  0. Return to Game')
+                print()
+                
+                choice = input('  > ').strip()
+                
+                if choice == '0':
+                    break
+                
+                try:
+                    idx = int(choice) - 1
+                    if 0 <= idx < len(available_upgrades):
+                        selected = available_upgrades[idx]
+                        self._install_upgrade(selected)
+                    else:
+                        continue
+                except ValueError:
+                    continue
+            else:
+                msg = 'No upgrades available yet. Defeat enemies!'
+                print(msg)
+                print()
+                wait_for_continue('Press Enter to return...')
+                break
+    
+    def _install_upgrade(self, upgrade_item):
+        """Install an upgrade to the AI companion."""
         clear_screen()
-        render_face(self.ai.mood, large=True)
-        self.ai.describe()
         print()
-        wait_for_continue('Press Enter to return to game...')
+        render_face('happy', large=True)
+        print()
+        cprint(f'Installing: {upgrade_item.name}', 'cyan')
+        cprint(f'{upgrade_item.desc}', 'white')
+        print()
+        
+        # Add to AI upgrades and inventory
+        self.ai.upgrades.append(upgrade_item.name)
+        self.inventory.items.remove(upgrade_item)
+        
+        # Increase bond
+        self.ai.bond = min(1.0, self.ai.bond + 0.05)
+        
+        # AI dialogue
+        dialogues = [
+            f'I can feel the {upgrade_item.name} integrating!',
+            'This is amazing! Thank you for this upgrade!',
+            f'I feel stronger with the {upgrade_item.name}!',
+            'This will help us on our journey!',
+        ]
+        
+        self.ai.speak('happy', random.choice(dialogues))
+        
+        print()
+        wait_for_continue('> ')
 
     def run(self):
         while self.running:
